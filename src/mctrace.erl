@@ -1,3 +1,5 @@
+% -*- Mode: Erlang; tab-width: 2 -*-
+
 %%%-------------------------------------------------------------------
 %%% @author Maxim Treskin <zerthurd@gmail.com>
 %%% @copyright (C) 2011, Maxim Treskin
