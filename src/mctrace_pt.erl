@@ -45,7 +45,7 @@ parse_transform(Forms, Options) ->
   [File|_] = [F || {attribute,_,file,{F,_}} <- Forms],
   try do_transform(Forms, Options) of
       Res ->
-      ?DBG("Res:~n~p", [Res]),
+      %%?DBG("Res:~n~p", [Res]),
       Res
   catch
     throw:{error, Ln, What} ->
@@ -54,12 +54,8 @@ parse_transform(Forms, Options) ->
 
 
 do_transform(Forms, _Options) ->
-  ?DBG("Forms: ~n~p", [Forms]),
-  %%?DBG("Options: ~n~p", [Options]),
-
   Fun1 =
     fun(function, Function, Ctx, _Acc) ->
-        ?DBG("Function:~n~p", [Function]),
         RetForms = put_trace(Function, Ctx),
         {RetForms, false, []};
        (_, Fs, _Ctx, _Acc) ->
@@ -114,7 +110,6 @@ put_trace({function, Line, init = FunName, 1 = Arity, Clauses},
             _ ->
               undefined
           end,
-        ?DBG("Format:~p", [Format]),
         Tracing = proplists:get_value(tracing, MctOpts, []),
 
         {ok, TsCall, _} = erl_scan:string(
@@ -129,7 +124,6 @@ put_trace({function, Line, init = FunName, 1 = Arity, Clauses},
                                             ").",
                                             [Module, Behaviour, Format, Tracing])), ClLine),
         {ok, [TraceFunCall]} = erl_parse:parse_exprs(TsCall),
-        ?DBG("Resulting INIT:~n~p", [[TraceFunCall | ClBody]]),
         {clause, ClLine, ClMatch, ClGuards, [TraceFunCall | ClBody]};
       (Other) ->
         Other
@@ -146,7 +140,6 @@ put_trace({function, Line, terminate = FunName, 2 = Arity, Clauses},
       ({clause, ClLine, ClMatch, ClGuards, ClBody}) ->
         {ok, TsCall, _} = erl_scan:string("mctrace:terminate_tracing().", ClLine),
         {ok, [TraceFunCall]} = erl_parse:parse_exprs(TsCall),
-        ?DBG("Resulting INIT:~n~p", [[TraceFunCall | ClBody]]),
         {clause, ClLine, ClMatch, ClGuards, [TraceFunCall | ClBody]};
       (Other) ->
         Other
