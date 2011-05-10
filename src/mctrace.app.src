@@ -1,12 +1,15 @@
+%% -*- mode: Erlang; -*-
+
 {application, mctrace,
  [
-  {description, ""},
-  {vsn, "1"},
-  {registered, []},
+  {description, "Process messages tracing"},
+  {vsn, "0.2"},
+  {registered, [
+                mctrace
+               ]},
   {applications, [
                   kernel,
                   stdlib
                  ]},
-  {mod, { mctrace_app, []}},
   {env, []}
  ]}.
