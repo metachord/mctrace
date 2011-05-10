@@ -54,7 +54,7 @@ terminate_tracing() ->
 %%% gen_server callbacks
 
 init([]) ->
-  Tid = ets:new(?SERVER, [named_table, public, set]),
+  Tid = ets:new(?SERVER, [set]),
   {ok, #state{tid = Tid}}.
 
 handle_call(Request, _From, State) ->
