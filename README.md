@@ -44,7 +44,7 @@ and print it on stdout using specified format functions.
 
     -ifdef(MCTRACE).
      ...
-    -endif.`
+    -endif.
 
  2. Put here following attributes:
 
