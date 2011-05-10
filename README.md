@@ -48,15 +48,15 @@ and print it on stdout using specified format functions.
 
  2. Put here following attributes:
 
-   * Header file of mctrace with record definition:
+   Header file of mctrace with record definition:
 
     -include_lib("mctrace/include/mctrace.hrl").
 
-   * Compile option:
+   Compile option:
 
     -compile({parse_transform, mctrace}).
 
-   * Export formatting functions (for gen_server here) if they defined
+   Export formatting functions (for gen_server here) if they defined
    in this module:
 
     -export([
@@ -69,7 +69,7 @@ and print it on stdout using specified format functions.
           format_exit/4
          ]).
 
-   * Say to `mctrace` what you want to trace and which functions use to
+   Say to `mctrace` what you want to trace and which functions use to
    format specified trace events:
 
     -mct_opts([
