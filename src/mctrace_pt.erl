@@ -132,10 +132,12 @@ put_trace({function, Line, init = FunName, 1 = Arity, Clauses},
     end,
   NewClauses = [PutTr(Cl) || Cl <- Clauses],
   {function, Line, FunName, Arity, NewClauses};
-put_trace({function, Line, terminate = FunName, 2 = Arity, Clauses},
+put_trace({function, Line, terminate = FunName, Arity, Clauses},
           #context{module = _Module, behaviour = Behaviour})
-  when Behaviour =:= gen_server orelse
-       Behaviour =:= gen_fsm ->
+  when (Behaviour =:= gen_server orelse
+        Behaviour =:= gen_fsm) andalso
+       (Arity =:= 2 orelse
+        Arity =:= 3)->
 
   PutTr =
     fun
