@@ -55,12 +55,14 @@ and print it on stdout using specified format functions.
 
     ```erlang
     -include_lib("mctrace/include/mctrace.hrl").
+
     ```
 
    Compile option:
 
     ```erlang
     -compile({parse_transform, mctrace}).
+
     ```
 
    Export formatting functions (for gen_server here) if they defined
