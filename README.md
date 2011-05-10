@@ -51,25 +51,23 @@ and print it on stdout using specified format functions.
 
  2. Put here following attributes:
 
-   Header file of mctrace with record definition:
+   * Header file of mctrace with record definition:
 
-    ```erlang
-    -include_lib("mctrace/include/mctrace.hrl").
+     ```erlang
+     -include_lib("mctrace/include/mctrace.hrl").
+     ```
 
-    ```
+   * Compile option:
 
-   Compile option:
+     ```erlang
+     -compile({parse_transform, mctrace}).
+     ```
 
-    ```erlang
-    -compile({parse_transform, mctrace}).
-
-    ```
-
-   Export formatting functions (for gen_server here) if they defined
+   * Export formatting functions (for gen_server here) if they defined
    in this module:
 
-    ```erlang
-    -export([
+     ```erlang
+     -export([
           format_send_cast/5,
           format_send_call/5,
           format_send_info/5,
@@ -78,13 +76,13 @@ and print it on stdout using specified format functions.
           format_receive_info/4,
           format_exit/4
          ]).
-    ```
+     ```
 
-   Say to `mctrace` what you want to trace and which functions use to
+   * Say to `mctrace` what you want to trace and which functions use to
    format specified trace events:
 
-    ```erlang
-    -mct_opts([
+     ```erlang
+     -mct_opts([
           {tracing, [send, procs, 'receive', timestamp]},
           {format_send_cast, format_send_cast},
           {format_send_call, format_send_call},
@@ -94,7 +92,7 @@ and print it on stdout using specified format functions.
           {format_receive_info, format_receive_info},
           {format_exit, format_exit}
          ]).
-    ```
+     ```
 
  3. Implement format functions (see examples in `examples/ttm/src/ttm_server.erl`)
 
