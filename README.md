@@ -19,24 +19,18 @@ Just add following lines in `rebar.config`:
 
 # Planned
 
- * Arbitrary (user-defined) behaviours support
  * Generating dot-file for Graphviz
  * Use state of process in events handling
- * Arbitrary actions on trace events (write to file, send over network)
- * Use more general hooks instead of format functions
 
 # Description
 
 `mctrace` uses parse_transform to inject own hooks in some functions
 (now only init/1 and terminate/2,3).
 
-Now only gen_server and gen_fsm is supported, but in future you can
-define your own behaviours of processes and trace it.
-
 Traced process sends message to `mctrace` on startup which contains its `pid()`
-and some options, like list of format functions and traced events.
+and some options, like list of hooks functions and traced events.
 `mctrace` call `erlang:trace/3` function to trace specified events on process
-and print it on stdout using specified format functions.
+and print it on stdout using specified hooks functions.
 
 # Usage
 
@@ -63,41 +57,49 @@ and print it on stdout using specified format functions.
      -compile({parse_transform, mctrace}).
      ```
 
-   * Export formatting functions (for gen_server here) if they defined
+   * Export hooks functions (for gen_server here) if they defined
    in this module:
 
      ```erlang
      -export([
-          format_send_cast/5,
-          format_send_call/5,
-          format_send_info/5,
-          format_receive_cast/4,
-          format_receive_call/5,
-          format_receive_info/4,
-          format_exit/4
+          hook_send_cast/5,
+          hook_send_call/5,
+          hook_send_info/5,
+          hook_receive_cast/4,
+          hook_receive_call/5,
+          hook_receive_info/4,
+          hook_exit/4
          ]).
      ```
 
    * Say to `mctrace` what you want to trace and which functions use to
-   format specified trace events:
+   handle specified trace events:
 
      ```erlang
      -mct_opts([
           {tracing, [send, procs, 'receive', timestamp]},
-          {format_send_cast, format_send_cast},
-          {format_send_call, format_send_call},
-          {format_send_info, format_send_info},
-          {format_receive_cast, format_receive_cast},
-          {format_receive_call, format_receive_call},
-          {format_receive_info, format_receive_info},
-          {format_exit, format_exit}
+          {hook_send_cast,       hook_send_cast},
+          {hook_send_call,       hook_send_call},
+          {hook_send_info,       hook_send_info},
+          {hook_receive_cast,    hook_receive_cast},
+          {hook_receive_call,    hook_receive_call},
+          {hook_receive_info,    hook_receive_info},
+          {hook_exit,            hook_exit}
          ]).
      ```
 
- 3. Implement format functions (see examples in `examples/ttm/src/ttm_server.erl`)
+   * If your hooks defined in other module, write following:
 
- 3. Compile source code with `-D MCTRACE`, or put analog to `rebar.config`
+     ```erlang
+     ...
+     {hook_send_info,       {my_hooks_mod, hook_send_info}},
+     ...
+     ```
 
- 4. Run `mctrace` application before yours
+ 3. Implement hook functions (see examples in `examples/ttm/src/ttm_hooks.erl`)
 
- 5. Start your application with traced processes
+ 4. Compile source code with `-D MCTRACE`, or put analog to `rebar.config`
+
+ 5. Run `mctrace` application before yours
+
+ 6. Start your application with traced processes
