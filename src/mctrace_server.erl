@@ -64,7 +64,7 @@ handle_call(Request, _From, State) ->
 handle_cast({init_tracing, Pid,
              #mctrace_init_opts{module = Module,
                                 behaviour = Behaviour,
-                                format = Format,
+                                hooks = Hooks,
                                 tracing = TraceOpts}},
             #state{tid = Tid} = State) ->
   ?DBG("Init tracing: ~p", [Pid]),
@@ -72,7 +72,7 @@ handle_cast({init_tracing, Pid,
   erlang:trace(Pid, true, TraceOpts),
   Ref = erlang:monitor(process, Pid),
   %% Store to ETS
-  ets:insert(Tid, {Pid, Ref, Module, Behaviour, Format}),
+  ets:insert(Tid, {Pid, Ref, Module, Behaviour, Hooks}),
 
   {noreply, State};
 handle_cast({terminate_tracing, Pid}, State) ->
@@ -92,8 +92,8 @@ handle_info(Trace, #state{tid = Tid} = State)
   Timestamp = element(1, Trace) =:= trace_ts,
 
   case ets:lookup(Tid, Pid) of
-    [{Pid, _Ref, Module, Behaviour, Format}] ->
-      St = [{module, Module}, {behaviour, Behaviour} | Format],
+    [{Pid, _Ref, Module, Behaviour, Hooks}] ->
+      St = [{module, Module}, {behaviour, Behaviour} | Hooks],
       case Action of
         _ when
             (Action =:= send orelse
@@ -116,7 +116,7 @@ handle_info(Trace, #state{tid = Tid} = State)
                 end,
               NewSt =
                 case ets:lookup(Tid, RealToPid) of
-                  [{ToPid, _ToRef, _ToModule, ToBehaviour, _ToFormat}] ->
+                  [{ToPid, _ToRef, _ToModule, ToBehaviour, _ToHooks}] ->
                     [{to_behaviour, ToBehaviour} | St];
                   _ ->
                     %% Use process own behaviour if behaviour of destination is unknown
@@ -180,11 +180,11 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 
 trace_pr(St, Ts, Pid, Action, Args) ->
-  case trace_str(St, Ts, Pid, Action, Args) of
-    {ok, Str} ->
-      io:format(Str ++ "~n");
-    _ ->
-      ok
+  try
+    trace_str(St, Ts, Pid, Action, Args)
+  catch
+    C:W ->
+      ?DBG("Exception: ~p:~p, ~p", [C, W, erlang:get_stacktrace()])
   end.
 
 trace_str(St, undefined, Pid, Action, Args) ->
@@ -192,15 +192,15 @@ trace_str(St, undefined, Pid, Action, Args) ->
 
 trace_str(St, Ts, Pid, send, {Data, ToPid}) ->
   Behaviour = proplists:get_value(to_behaviour, St),
-  Default = proplists:get_value(format_send_info, St),
+  Default = proplists:get_value(hook_send_info, St),
   case Behaviour of
     gen_server ->
       case Data of
         {'$gen_call', {Pid, _Ref}, Msg} ->
-          {M, F} = proplists:get_value(format_send_call, St, Default),
+          {M, F} = proplists:get_value(hook_send_call, St, Default),
           check_apply(M, F, [St, Ts, Pid, ToPid, Msg]);
         {'$gen_cast', Msg} ->
-          {M, F} = proplists:get_value(format_send_cast, St, Default),
+          {M, F} = proplists:get_value(hook_send_cast, St, Default),
           check_apply(M, F, [St, Ts, Pid, ToPid, Msg]);
         Msg ->
           {M, F} = Default,
@@ -220,15 +220,15 @@ trace_str(St, Ts, Pid, send, {Data, ToPid}) ->
 
 trace_str(St, Ts, Pid, 'receive', Data) ->
   Behaviour = proplists:get_value(behaviour, St),
-  Default = proplists:get_value(format_receive_info, St),
+  Default = proplists:get_value(hook_receive_info, St),
   case Behaviour of
     gen_server ->
       case Data of
         {'$gen_call', {FromPid, _Ref}, Msg} ->
-          {M, F} = proplists:get_value(format_receive_call, St, Default),
+          {M, F} = proplists:get_value(hook_receive_call, St, Default),
           check_apply(M, F, [St, Ts, Pid, FromPid, Msg]);
         {'$gen_cast', Msg} ->
-          {M, F} = proplists:get_value(format_receive_cast, St, Default),
+          {M, F} = proplists:get_value(hook_receive_cast, St, Default),
           check_apply(M, F, [St, Ts, Pid, Msg]);
         Msg ->
           {M, F} = Default,
@@ -237,16 +237,16 @@ trace_str(St, Ts, Pid, 'receive', Data) ->
     gen_fsm ->
       case Data of
         {'$gen_sync_event', {FromPid, _Ref}, Msg} ->
-          {M, F} = proplists:get_value(format_receive_sync_event, St, Default),
+          {M, F} = proplists:get_value(hook_receive_sync_event, St, Default),
           check_apply(M, F, [St, Ts, Pid, FromPid, Msg]);
         {'$gen_event', Msg} ->
-          {M, F} = proplists:get_value(format_receive_event, St, Default),
+          {M, F} = proplists:get_value(hook_receive_event, St, Default),
           check_apply(M, F, [St, Ts, Pid, Msg]);
         {'$gen_sync_all_state_event', {FromPid, _Ref}, Msg} ->
-          {M, F} = proplists:get_value(format_receive_sync_all_state_event, St, Default),
+          {M, F} = proplists:get_value(hook_receive_sync_all_state_event, St, Default),
           check_apply(M, F, [St, Ts, Pid, FromPid, Msg]);
         {'$gen_all_state_event', Msg} ->
-          {M, F} = proplists:get_value(format_receive_all_state_event, St, Default),
+          {M, F} = proplists:get_value(hook_receive_all_state_event, St, Default),
           check_apply(M, F, [St, Ts, Pid, Msg]);
         Msg ->
           {M, F} = Default,
@@ -258,10 +258,11 @@ trace_str(St, Ts, Pid, 'receive', Data) ->
   end;
 
 trace_str(St, Ts, Pid, exit, Reason) ->
-  {M, F} = proplists:get_value(format_exit, St),
+  {M, F} = proplists:get_value(hook_exit, St),
   check_apply(M, F, [St, Ts, Pid, Reason]).
 
 check_apply(M, F, Args) ->
+  code:ensure_loaded(M),
   case erlang:function_exported(M, F, length(Args)) of
     true -> apply(M, F, Args);
     false -> ok

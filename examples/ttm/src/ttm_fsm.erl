@@ -27,48 +27,21 @@
 -ifdef(MCTRACE).
 -include_lib("mctrace/include/mctrace.hrl").
 
--export([
-         format_send_event/5,
-         format_send_sync_event/5,
-
-         format_send_all_state_event/5,
-         format_send_sync_all_state_event/5,
-
-         format_send_info/5,
-
-         format_receive_event/4,
-         format_receive_sync_event/5,
-
-         format_receive_all_state_event/4,
-         format_receive_sync_all_state_event/5,
-
-         format_receive_info/4,
-
-         format_exit/4
-
-        ]).
-
 -compile({parse_transform, mctrace}).
 -mct_opts([
            {tracing, [send, procs, 'receive', timestamp]},
 
-           {format_send_event, format_send_event},
-           {format_send_sync_event, format_send_sync_event},
-
-           {format_send_all_state_event, format_send_all_state_event},
-           {format_send_sync_all_state_event, format_send_sync_all_state_event},
-
-           {format_send_info, format_send_info},
-
-           {format_receive_event, format_receive_event},
-           {format_receive_sync_event, format_receive_sync_event},
-
-           {format_receive_all_state_event, format_receive_all_state_event},
-           {format_receive_sync_all_state_event, format_receive_sync_all_state_event},
-
-           {format_receive_info, format_receive_info},
-
-           {format_exit, format_exit}
+           {hook_send_event,                     {ttm_hooks, h_s_event}},
+           {hook_send_sync_event,                {ttm_hooks, h_s_sync_event}},
+           {hook_send_all_state_event,           {ttm_hooks, h_s_all_state_event}},
+           {hook_send_sync_all_state_event,      {ttm_hooks, h_s_sync_all_state_event}},
+           {hook_send_info,                      {ttm_hooks, h_s_info}},
+           {hook_receive_event,                  {ttm_hooks, h_r_event}},
+           {hook_receive_sync_event,             {ttm_hooks, h_r_sync_event}},
+           {hook_receive_all_state_event,        {ttm_hooks, h_r_all_state_event}},
+           {hook_receive_sync_all_state_event,   {ttm_hooks, h_r_sync_all_state_event}},
+           {hook_receive_info,                   {ttm_hooks, h_r_info}},
+           {hook_exit,                           {ttm_hooks, h_exit}}
 
           ]).
 -endif.
@@ -116,54 +89,3 @@ code_change(_OldVsn, StateName, State, _Extra) ->
   {ok, StateName, State}.
 
 %%% Internal functions
-
-
--ifdef(MCTRACE).
-
-
-format_send_event(_St, Timestamp, Pid, ToPid, Msg) ->
-  {ok, io_lib:format("SEND EVENT: ~p, ~p, ~p, ~p", [Timestamp, Pid, ToPid, Msg])}.
-
-format_send_sync_event(_St, Timestamp, Pid, ToPid, Msg) ->
-  {ok, io_lib:format("SEND SYNC EVENT: ~p, ~p, ~p, ~p", [Timestamp, Pid, ToPid, Msg])}.
-
-format_send_all_state_event(_St, Timestamp, Pid, ToPid, Msg) ->
-  {ok, io_lib:format("SEND ALL STATE EVENT: ~p, ~p, ~p, ~p", [Timestamp, Pid, ToPid, Msg])}.
-
-format_send_sync_all_state_event(_St, Timestamp, Pid, ToPid, Msg) ->
-  {ok, io_lib:format("SEND SYNC ALL STATE EVENT: ~p, ~p, ~p, ~p", [Timestamp, Pid, ToPid, Msg])}.
-
-format_send_info(_St, _Timestamp, _Pid, _ToPid, {Ref, _}) when is_reference(Ref) ->
-  ignore;
-format_send_info(_St, Timestamp, Pid, ToPid, Msg) ->
-  {ok, io_lib:format("SEND INFO: ~p, ~p, ~p, ~p", [Timestamp, Pid, ToPid, Msg])}.
-
-
-format_receive_event(St, Timestamp, Pid, Msg) ->
-  Module = proplists:get_value(module, St),
-  {ok, io_lib:format("~p: RECV EVENT: ~p, ~p, ~p", [Module, Timestamp, Pid, Msg])}.
-
-format_receive_sync_event(St, Timestamp, Pid, FromPid, Msg) ->
-  Module = proplists:get_value(module, St),
-  {ok, io_lib:format("~p: RECV SYNC EVENT: ~p, ~p, ~p, ~p", [Module, Timestamp, Pid, FromPid, Msg])}.
-
-format_receive_all_state_event(St, Timestamp, Pid, Msg) ->
-  Module = proplists:get_value(module, St),
-  {ok, io_lib:format("~p: RECV ALL STATE EVENT: ~p, ~p, ~p", [Module, Timestamp, Pid, Msg])}.
-
-format_receive_sync_all_state_event(St, Timestamp, Pid, FromPid, Msg) ->
-  Module = proplists:get_value(module, St),
-  {ok, io_lib:format("~p: RECV SYNC ALL STATE EVENT: ~p, ~p, ~p, ~p", [Module, Timestamp, Pid, FromPid, Msg])}.
-
-format_receive_info(St, Timestamp, Pid, {Ref, Msg}) when is_reference(Ref) ->
-  Module = proplists:get_value(module, St),
-  {ok, io_lib:format("~p: RECV CALL REPLY: ~p, ~p, ~p", [Module, Timestamp, Pid, Msg])};
-format_receive_info(St, Timestamp, Pid, Msg) ->
-  Module = proplists:get_value(module, St),
-  {ok, io_lib:format("~p: RECV INFO: ~p, ~p, ~p", [Module, Timestamp, Pid, Msg])}.
-
-
-format_exit(_St, Timestamp, Pid, Reason) ->
-  {ok, io_lib:format("EXIT: ~p, ~p, ~p", [Timestamp, Pid, Reason])}.
-
--endif.

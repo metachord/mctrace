@@ -73,7 +73,7 @@ put_trace({function, Line, init = FunName, 1 = Arity, Clauses},
   PutTr =
     fun
       ({clause, ClLine, ClMatch, ClGuards, ClBody}) ->
-        FormatGf =
+        HookGf =
           fun(Key) ->
               case proplists:get_value(Key, MctOpts) of
                 undefined -> {undefined, undefined};
@@ -82,36 +82,36 @@ put_trace({function, Line, init = FunName, 1 = Arity, Clauses},
                 FFun when is_atom(FFun) ->
                   {Module, FFun};
                 Other ->
-                  throw({error, {bad_format_function, Other}})
+                  throw({error, {bad_hook_function, Other}})
               end
           end,
-        Format =
+        Hooks =
           case Behaviour of
             gen_server ->
               [
-               {format_receive_cast, FormatGf(format_receive_cast)},
-               {format_receive_call, FormatGf(format_receive_call)},
-               {format_receive_info, FormatGf(format_receive_info)},
-               {format_send_cast, FormatGf(format_send_cast)},
-               {format_send_call, FormatGf(format_send_call)},
-               {format_send_info, FormatGf(format_send_info)},
-               {format_exit, FormatGf(format_exit)}
+               {hook_receive_cast, HookGf(hook_receive_cast)},
+               {hook_receive_call, HookGf(hook_receive_call)},
+               {hook_receive_info, HookGf(hook_receive_info)},
+               {hook_send_cast, HookGf(hook_send_cast)},
+               {hook_send_call, HookGf(hook_send_call)},
+               {hook_send_info, HookGf(hook_send_info)},
+               {hook_exit, HookGf(hook_exit)}
               ];
             gen_fsm ->
               [
-               {format_receive_event, FormatGf(format_receive_event)},
-               {format_receive_sync_event, FormatGf(format_receive_sync_event)},
-               {format_receive_all_state_event, FormatGf(format_receive_all_state_event)},
-               {format_receive_sync_all_state_event, FormatGf(format_receive_sync_all_state_event)},
-               {format_receive_info, FormatGf(format_receive_info)},
-               {format_send_info, FormatGf(format_send_info)},
-               {format_exit, FormatGf(format_exit)}
+               {hook_receive_event, HookGf(hook_receive_event)},
+               {hook_receive_sync_event, HookGf(hook_receive_sync_event)},
+               {hook_receive_all_state_event, HookGf(hook_receive_all_state_event)},
+               {hook_receive_sync_all_state_event, HookGf(hook_receive_sync_all_state_event)},
+               {hook_receive_info, HookGf(hook_receive_info)},
+               {hook_send_info, HookGf(hook_send_info)},
+               {hook_exit, HookGf(hook_exit)}
               ];
             _ ->
               [
-               {format_receive_info, FormatGf(format_receive_info)},
-               {format_send_info, FormatGf(format_send_info)},
-               {format_exit, FormatGf(format_exit)}
+               {hook_receive_info, HookGf(hook_receive_info)},
+               {hook_send_info, HookGf(hook_send_info)},
+               {hook_exit, HookGf(hook_exit)}
               ]
           end,
         Tracing = proplists:get_value(tracing, MctOpts, []),
@@ -122,11 +122,11 @@ put_trace({function, Line, init = FunName, 1 = Arity, Clauses},
                                             "#mctrace_init_opts{"
                                             "module = ~p,"
                                             "behaviour = ~p,"
-                                            "format = ~p,"
+                                            "hooks = ~p,"
                                             "tracing = ~p"
                                             "}"
                                             ").",
-                                            [Module, Behaviour, Format, Tracing])), ClLine),
+                                            [Module, Behaviour, Hooks, Tracing])), ClLine),
         {ok, [TraceFunCall]} = erl_parse:parse_exprs(TsCall),
         {clause, ClLine, ClMatch, ClGuards, [TraceFunCall | ClBody]};
       (Other) ->

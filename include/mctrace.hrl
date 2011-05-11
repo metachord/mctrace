@@ -5,7 +5,7 @@
 -record(mctrace_init_opts, {
           module            :: atom(),
           behaviour         :: atom(),
-          format            :: [{atom(), atom()}],
+          hooks             :: [{atom(), atom()}],
           tracing           :: [atom()]
          }).
 
