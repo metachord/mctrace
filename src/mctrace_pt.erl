@@ -69,16 +69,14 @@ do_transform(Forms, _Options) ->
 
 put_trace({function, Line, init = FunName, 1 = Arity, Clauses},
           #context{module = Module, behaviour = Behaviour,
-                   mct_opts = MctOpts})
-  when Behaviour =:= gen_server orelse
-       Behaviour =:= gen_fsm ->
-
+                   mct_opts = MctOpts}) ->
   PutTr =
     fun
       ({clause, ClLine, ClMatch, ClGuards, ClBody}) ->
         FormatGf =
           fun(Key) ->
-              case proplists:get_value(Key, MctOpts, {mctrace, Key}) of
+              case proplists:get_value(Key, MctOpts) of
+                undefined -> {undefined, undefined};
                 {FMod, FFun} when is_atom(FMod) andalso is_atom(FFun) ->
                   {FMod, FFun};
                 FFun when is_atom(FFun) ->
@@ -110,7 +108,11 @@ put_trace({function, Line, init = FunName, 1 = Arity, Clauses},
                {format_exit, FormatGf(format_exit)}
               ];
             _ ->
-              undefined
+              [
+               {format_receive_info, FormatGf(format_receive_info)},
+               {format_send_info, FormatGf(format_send_info)},
+               {format_exit, FormatGf(format_exit)}
+              ]
           end,
         Tracing = proplists:get_value(tracing, MctOpts, []),
 
@@ -133,12 +135,7 @@ put_trace({function, Line, init = FunName, 1 = Arity, Clauses},
   NewClauses = [PutTr(Cl) || Cl <- Clauses],
   {function, Line, FunName, Arity, NewClauses};
 put_trace({function, Line, terminate = FunName, Arity, Clauses},
-          #context{module = _Module, behaviour = Behaviour})
-  when (Behaviour =:= gen_server orelse
-        Behaviour =:= gen_fsm) andalso
-       (Arity =:= 2 orelse
-        Arity =:= 3)->
-
+          #context{module = _Module, behaviour = _Behaviour}) ->
   PutTr =
     fun
       ({clause, ClLine, ClMatch, ClGuards, ClBody}) ->

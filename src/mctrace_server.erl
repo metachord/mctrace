@@ -198,20 +198,23 @@ trace_str(St, Ts, Pid, send, {Data, ToPid}) ->
       case Data of
         {'$gen_call', {Pid, _Ref}, Msg} ->
           {M, F} = proplists:get_value(format_send_call, St, Default),
-          apply(M, F, [St, Ts, Pid, ToPid, Msg]);
+          check_apply(M, F, [St, Ts, Pid, ToPid, Msg]);
         {'$gen_cast', Msg} ->
           {M, F} = proplists:get_value(format_send_cast, St, Default),
-          apply(M, F, [St, Ts, Pid, ToPid, Msg]);
+          check_apply(M, F, [St, Ts, Pid, ToPid, Msg]);
         Msg ->
           {M, F} = Default,
-          apply(M, F, [St, Ts, Pid, ToPid, Msg])
+          check_apply(M, F, [St, Ts, Pid, ToPid, Msg])
       end;
     gen_fsm ->
       case Data of
         Msg ->
           {M, F} = Default,
-          apply(M, F, [St, Ts, Pid, ToPid, Msg])
-      end
+          check_apply(M, F, [St, Ts, Pid, ToPid, Msg])
+      end;
+    _ ->
+      {M, F} = Default,
+      check_apply(M, F, [St, Ts, Pid, ToPid, Data])
   end;
 
 
@@ -223,34 +226,43 @@ trace_str(St, Ts, Pid, 'receive', Data) ->
       case Data of
         {'$gen_call', {FromPid, _Ref}, Msg} ->
           {M, F} = proplists:get_value(format_receive_call, St, Default),
-          apply(M, F, [St, Ts, Pid, FromPid, Msg]);
+          check_apply(M, F, [St, Ts, Pid, FromPid, Msg]);
         {'$gen_cast', Msg} ->
           {M, F} = proplists:get_value(format_receive_cast, St, Default),
-          apply(M, F, [St, Ts, Pid, Msg]);
+          check_apply(M, F, [St, Ts, Pid, Msg]);
         Msg ->
           {M, F} = Default,
-          apply(M, F, [St, Ts, Pid, Msg])
+          check_apply(M, F, [St, Ts, Pid, Msg])
       end;
     gen_fsm ->
       case Data of
         {'$gen_sync_event', {FromPid, _Ref}, Msg} ->
           {M, F} = proplists:get_value(format_receive_sync_event, St, Default),
-          apply(M, F, [St, Ts, Pid, FromPid, Msg]);
+          check_apply(M, F, [St, Ts, Pid, FromPid, Msg]);
         {'$gen_event', Msg} ->
           {M, F} = proplists:get_value(format_receive_event, St, Default),
-          apply(M, F, [St, Ts, Pid, Msg]);
+          check_apply(M, F, [St, Ts, Pid, Msg]);
         {'$gen_sync_all_state_event', {FromPid, _Ref}, Msg} ->
           {M, F} = proplists:get_value(format_receive_sync_all_state_event, St, Default),
-          apply(M, F, [St, Ts, Pid, FromPid, Msg]);
+          check_apply(M, F, [St, Ts, Pid, FromPid, Msg]);
         {'$gen_all_state_event', Msg} ->
           {M, F} = proplists:get_value(format_receive_all_state_event, St, Default),
-          apply(M, F, [St, Ts, Pid, Msg]);
+          check_apply(M, F, [St, Ts, Pid, Msg]);
         Msg ->
           {M, F} = Default,
-          apply(M, F, [St, Ts, Pid, Msg])
-      end
+          check_apply(M, F, [St, Ts, Pid, Msg])
+      end;
+    _ ->
+      {M, F} = Default,
+      check_apply(M, F, [St, Ts, Pid, Data])
   end;
 
 trace_str(St, Ts, Pid, exit, Reason) ->
   {M, F} = proplists:get_value(format_exit, St),
-  apply(M, F, [St, Ts, Pid, Reason]).
+  check_apply(M, F, [St, Ts, Pid, Reason]).
+
+check_apply(M, F, Args) ->
+  case erlang:function_exported(M, F, length(Args)) of
+    true -> apply(M, F, Args);
+    false -> ok
+  end.
